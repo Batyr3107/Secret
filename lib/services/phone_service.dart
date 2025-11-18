@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:phone_state/phone_state.dart';
 import 'database_service.dart';
@@ -7,6 +8,8 @@ import '../models/contact_note.dart';
 
 class PhoneService {
   static final PhoneService instance = PhoneService._init();
+  static const platform = MethodChannel('com.example.context_keeper/phone');
+
   PhoneService._init();
 
   Future<void> initialize() async {
@@ -66,10 +69,16 @@ class PhoneService {
   }
 
   Future<void> _showAndroidOverlay(ContactNote note) async {
-    // Implementation using flutter_overlay_window
-    // This will be handled in the Android-specific code
-    debugPrint('Showing overlay for: ${note.contactName}');
-    debugPrint('Notes: ${note.notes}');
+    try {
+      await platform.invokeMethod('showOverlay', {
+        'contactName': note.contactName,
+        'notes': note.notes,
+      });
+      debugPrint('Overlay shown for: ${note.contactName}');
+    } catch (e) {
+      debugPrint('Error showing overlay: $e');
+      // Note: Overlay будет показан через нативный код если permissions granted
+    }
   }
 
   // Check if all permissions are granted

@@ -71,10 +71,16 @@ class ContactNotesProvider with ChangeNotifier {
   }
 
   ContactNote? getNoteByPhoneNumber(String phoneNumber) {
+    if (_notes.isEmpty) return null;
+
     final cleanNumber = phoneNumber.replaceAll(RegExp(r'[^\d+]'), '');
-    return _notes.firstWhere(
-      (note) => note.phoneNumber.contains(cleanNumber),
-      orElse: () => _notes.first,
-    );
+    try {
+      return _notes.firstWhere(
+        (note) => note.phoneNumber.contains(cleanNumber),
+      );
+    } catch (e) {
+      debugPrint('Note not found for number: $phoneNumber');
+      return null;
+    }
   }
 }

@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'screens/home_screen.dart';
 import 'services/database_service.dart';
 import 'services/phone_service.dart';
@@ -14,6 +16,16 @@ void main() async {
   // Initialize error handling
   ErrorHandler.initialize();
 
+  // Initialize Firebase (with graceful fallback)
+  try {
+    await Firebase.initializeApp();
+    debugPrint('✅ Firebase initialized successfully');
+  } catch (e) {
+    debugPrint('⚠️ Firebase initialization skipped: $e');
+    debugPrint('ℹ️ iOS push notifications will not work without Firebase config');
+    debugPrint('ℹ️ This is expected if google-services.json is not configured');
+  }
+
   // Run app with error zone
   runZonedGuarded(
     () async {
@@ -23,8 +35,13 @@ void main() async {
       // Initialize phone service
       await PhoneService.instance.initialize();
 
-      // Initialize notification service
-      await NotificationService.instance.initialize();
+      // Initialize notification service (will skip Firebase if not configured)
+      try {
+        await NotificationService.instance.initialize();
+      } catch (e) {
+        debugPrint('⚠️ Notification service initialization failed: $e');
+        debugPrint('ℹ️ App will continue without notifications');
+      }
 
       runApp(const MyApp());
     },
