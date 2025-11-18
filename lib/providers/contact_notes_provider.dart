@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../models/contact_note.dart';
 import '../services/database_service.dart';
+import '../utils/phone_utils.dart';
 
 class ContactNotesProvider with ChangeNotifier {
   List<ContactNote> _notes = [];
@@ -73,10 +74,10 @@ class ContactNotesProvider with ChangeNotifier {
   ContactNote? getNoteByPhoneNumber(String phoneNumber) {
     if (_notes.isEmpty) return null;
 
-    final cleanNumber = phoneNumber.replaceAll(RegExp(r'[^\d+]'), '');
+    final cleanNumber = PhoneUtils.normalize(phoneNumber);
     try {
       return _notes.firstWhere(
-        (note) => note.phoneNumber.contains(cleanNumber),
+        (note) => PhoneUtils.areEqual(note.phoneNumber, phoneNumber),
       );
     } catch (e) {
       debugPrint('Note not found for number: $phoneNumber');

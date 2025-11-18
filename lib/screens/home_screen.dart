@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/contact_notes_provider.dart';
@@ -16,6 +17,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   bool _hasPermissions = false;
+  Timer? _debounce;
 
   @override
   void initState() {
@@ -110,7 +112,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 fillColor: Colors.grey[100],
               ),
               onChanged: (value) {
-                setState(() {});
+                _debounce?.cancel();
+                _debounce = Timer(
+                  const Duration(milliseconds: 300),
+                  () => setState(() {}),
+                );
               },
             ),
           ),
@@ -224,6 +230,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }

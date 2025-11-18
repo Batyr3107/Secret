@@ -25,9 +25,6 @@ dependencies:
   # Phone state monitoring
   phone_state: ^1.1.1
 
-  # Overlay for Android
-  flutter_overlay_window: ^0.4.6
-
   # Push notifications for iOS
   firebase_core: ^2.24.2
   firebase_messaging: ^14.7.9

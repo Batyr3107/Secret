@@ -166,6 +166,13 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
       await context.read<ContactNotesProvider>().saveNote(note);
 
       if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Заметка успешно сохранена'),
+            duration: Duration(seconds: 2),
+            backgroundColor: Colors.green,
+          ),
+        );
         Navigator.pop(context);
       }
     } catch (e) {
