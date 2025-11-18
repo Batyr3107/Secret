@@ -84,8 +84,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Planned for v1.1
 - [ ] Unit tests (target: 80% coverage)
 - [ ] Widget tests for UI components
-- [ ] Pull-to-refresh functionality
-- [ ] Loading states during operations
+- [x] Pull-to-refresh functionality ✅
+- [x] Loading states during operations ✅
 - [ ] Dark theme support
 
 ### Planned for v1.2
@@ -138,8 +138,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improvement guide
 - 15 actionable suggestions
 
-### Latest Updates
-**Commit:** [current]
+### Second Batch Improvements
+**Commit:** 79989ae
+- 4 files changed
+- 864 lines added
+- Centralized constants
+- Pull-to-refresh functionality
+- FAQ and examples documentation
+
+### First Batch Quick Wins
+**Commit:** bcbe23d
 - Removed unused dependency
 - Code quality improvements
 - Performance enhancements
