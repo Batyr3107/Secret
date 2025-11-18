@@ -136,7 +136,15 @@ class _HomeScreenState extends State<HomeScreen> {
                       }).toList();
 
                 if (notes.isEmpty) {
-                  return Center(
+                  return RefreshIndicator(
+                    onRefresh: () async {
+                      await provider.loadNotes();
+                    },
+                    child: ListView(
+                      children: [
+                        SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.6,
+                          child: Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -167,12 +175,20 @@ class _HomeScreenState extends State<HomeScreen> {
                         ],
                       ],
                     ),
+                          ),
+                        ),
+                      ],
+                    ),
                   );
                 }
 
-                return ListView.builder(
-                  itemCount: notes.length,
-                  itemBuilder: (context, index) {
+                return RefreshIndicator(
+                  onRefresh: () async {
+                    await provider.loadNotes();
+                  },
+                  child: ListView.builder(
+                    itemCount: notes.length,
+                    itemBuilder: (context, index) {
                     final note = notes[index];
                     return Card(
                       margin: const EdgeInsets.symmetric(
@@ -208,6 +224,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     );
                   },
+                  ),
                 );
               },
             ),
