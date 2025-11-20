@@ -9,6 +9,7 @@ import 'services/phone_service.dart';
 import 'services/notification_service.dart';
 import 'providers/contact_notes_provider.dart';
 import 'utils/error_handler.dart';
+import 'constants/app_constants.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -64,10 +65,51 @@ class MyApp extends StatelessWidget {
       create: (_) => ContactNotesProvider(),
       child: MaterialApp(
         title: 'Context Keeper',
+        debugShowCheckedModeBanner: false,
+
+        // 🌞 Светлая тема
         theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Colors.deepPurple,
+            brightness: Brightness.light,
+          ),
           useMaterial3: true,
+          cardTheme: CardTheme(
+            elevation: AppConstants.cardElevation,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+            ),
+          ),
+          appBarTheme: const AppBarTheme(
+            centerTitle: false,
+            elevation: 0,
+          ),
         ),
+
+        // 🌙 Темная тема
+        darkTheme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Colors.deepPurple,
+            brightness: Brightness.dark,
+          ),
+          useMaterial3: true,
+          cardTheme: CardTheme(
+            elevation: AppConstants.cardElevation,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+            ),
+          ),
+          scaffoldBackgroundColor: const Color(0xFF121212),
+          appBarTheme: const AppBarTheme(
+            centerTitle: false,
+            elevation: 0,
+            backgroundColor: Color(0xFF1E1E1E),
+          ),
+        ),
+
+        // 🔄 Автоматическое переключение по системным настройкам
+        themeMode: ThemeMode.system,
+
         home: const HomeScreen(),
       ),
     );

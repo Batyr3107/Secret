@@ -6,6 +6,7 @@ import '../services/phone_service.dart';
 import 'add_edit_note_screen.dart';
 import 'note_detail_screen.dart';
 import 'permissions_screen.dart';
+import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -81,10 +82,23 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
           IconButton(
+            icon: const Icon(Icons.settings),
+            tooltip: 'Настройки',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SettingsScreen(),
+                ),
+              );
+            },
+          ),
+          IconButton(
             icon: Icon(
               _hasPermissions ? Icons.check_circle : Icons.warning,
               color: _hasPermissions ? Colors.green : Colors.orange,
             ),
+            tooltip: 'Разрешения',
             onPressed: () {
               Navigator.push(
                 context,
