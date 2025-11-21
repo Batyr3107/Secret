@@ -145,33 +145,45 @@ class ExportService {
         debugPrint('⚠️ Версия файла ($version) отличается от текущей (1.0.0)');
       }
 
+      // Оптимизация: получаем все существующие номера ОДИН раз
+      // Было: O(n²) - для каждой заметки запрос к БД
+      // Стало: O(n) - один запрос, проверка в памяти
+      final allExistingNotes = await DatabaseService.instance.getAllNotes();
+      final existingPhones = allExistingNotes
+          .map((n) => n.phoneNumber)
+          .toSet(); // Set для O(1) проверки
+
+      debugPrint('📊 Существует заметок: ${existingPhones.length}');
+
       // Импортируем заметки
       final notesList = data['notes'] as List;
       int successCount = 0;
       int errorCount = 0;
+      int duplicateCount = 0;
 
       for (final noteMap in notesList) {
         try {
           final note = ContactNote.fromMap(noteMap as Map<String, dynamic>);
 
-          // Проверяем дубликаты по номеру телефона
-          final existing = await DatabaseService.instance
-              .getNoteByPhoneNumber(note.phoneNumber);
-
-          if (existing != null) {
+          // Проверяем дубликаты в памяти - O(1) вместо O(n)
+          if (existingPhones.contains(note.phoneNumber)) {
             debugPrint('⚠️ Пропуск дубликата: ${note.contactName} (${note.phoneNumber})');
+            duplicateCount++;
             continue;
           }
 
           await DatabaseService.instance.insertNote(note);
           successCount++;
+
+          // Добавляем в set чтобы избежать дубликатов внутри импорта
+          existingPhones.add(note.phoneNumber);
         } catch (e) {
           errorCount++;
           debugPrint('❌ Ошибка импорта заметки: $e');
         }
       }
 
-      debugPrint('✅ Импорт завершен: $successCount успешно, $errorCount ошибок');
+      debugPrint('✅ Импорт завершен: $successCount успешно, $duplicateCount дубликатов, $errorCount ошибок');
       return successCount;
     } catch (e, stackTrace) {
       debugPrint('❌ Ошибка импорта: $e');

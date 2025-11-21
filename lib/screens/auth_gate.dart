@@ -14,6 +14,7 @@ class _AuthGateState extends State<AuthGate> {
   bool _isAuthenticated = false;
   bool _isLoading = true;
   bool _authRequired = false;
+  bool _isAuthenticating = false; // Защита от множественных нажатий
   int _failedAttempts = 0;
 
   @override
@@ -30,64 +31,99 @@ class _AuthGateState extends State<AuthGate> {
       if (!isEnabled) {
         // Биометрия не включена - пускаем сразу
         debugPrint('🔓 Биометрия не включена, пропускаем проверку');
-        setState(() {
-          _isAuthenticated = true;
-          _isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            _isAuthenticated = true;
+            _isLoading = false;
+          });
+        }
         return;
       }
 
       // Биометрия включена - требуем аутентификацию
-      setState(() {
-        _authRequired = true;
-        _isLoading = false;
-      });
-
-      // Запрашиваем аутентификацию
-      await _authenticate();
+      if (mounted) {
+        setState(() {
+          _authRequired = true;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       debugPrint('⚠️ Ошибка при проверке биометрии: $e');
       // В случае ошибки пускаем пользователя (graceful degradation)
-      setState(() {
-        _isAuthenticated = true;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isAuthenticated = true;
+          _isLoading = false;
+        });
+      }
     }
   }
 
   Future<void> _authenticate() async {
-    final authenticated = await BiometricService.instance.authenticate(
-      localizedReason: 'Подтвердите вход в приложение',
-      useErrorDialogs: true,
-      stickyAuth: true,
-    );
+    // Защита от множественных нажатий
+    if (_isAuthenticating) {
+      debugPrint('⚠️ Аутентификация уже выполняется');
+      return;
+    }
 
-    if (authenticated) {
-      debugPrint('✅ Биометрическая аутентификация успешна');
-      if (mounted) {
-        setState(() {
-          _isAuthenticated = true;
-          _failedAttempts = 0; // Сбрасываем счётчик
-        });
+    if (mounted) {
+      setState(() => _isAuthenticating = true);
+    }
+
+    try {
+      final authenticated = await BiometricService.instance.authenticate(
+        localizedReason: 'Подтвердите вход в приложение',
+        useErrorDialogs: true,
+        stickyAuth: true,
+      );
+
+      if (authenticated) {
+        debugPrint('✅ Биометрическая аутентификация успешна');
+        if (mounted) {
+          setState(() {
+            _isAuthenticated = true;
+            _failedAttempts = 0; // Сбрасываем счётчик
+          });
+        }
+      } else {
+        debugPrint('❌ Биометрическая аутентификация отклонена');
+        if (mounted) {
+          setState(() {
+            _failedAttempts++;
+          });
+        }
       }
-    } else {
-      debugPrint('❌ Биометрическая аутентификация отклонена');
+    } finally {
       if (mounted) {
-        setState(() {
-          _failedAttempts++;
-        });
+        setState(() => _isAuthenticating = false);
       }
     }
   }
 
   /// Отключает биометрию и пускает пользователя в приложение
   Future<void> _disableBiometricAndEnter() async {
-    await BiometricService.instance.disableBiometric();
-    debugPrint('🔓 Биометрия отключена пользователем после неудачных попыток');
+    // Защита от множественных нажатий
+    if (_isAuthenticating) {
+      debugPrint('⚠️ Операция уже выполняется');
+      return;
+    }
+
     if (mounted) {
-      setState(() {
-        _isAuthenticated = true;
-      });
+      setState(() => _isAuthenticating = true);
+    }
+
+    try {
+      await BiometricService.instance.disableBiometric();
+      debugPrint('🔓 Биометрия отключена пользователем после неудачных попыток');
+      if (mounted) {
+        setState(() {
+          _isAuthenticated = true;
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isAuthenticating = false);
+      }
     }
   }
 
@@ -139,9 +175,9 @@ class _AuthGateState extends State<AuthGate> {
                 ],
                 const SizedBox(height: 32),
                 FilledButton.icon(
-                  onPressed: _authenticate,
+                  onPressed: _isAuthenticating ? null : _authenticate,
                   icon: const Icon(Icons.fingerprint),
-                  label: const Text('Разблокировать'),
+                  label: Text(_isAuthenticating ? 'Аутентификация...' : 'Разблокировать'),
                 ),
                 if (_failedAttempts >= 3) ...[
                   const SizedBox(height: 16),
@@ -153,11 +189,11 @@ class _AuthGateState extends State<AuthGate> {
                   ),
                   const SizedBox(height: 8),
                   TextButton.icon(
-                    onPressed: _disableBiometricAndEnter,
+                    onPressed: _isAuthenticating ? null : _disableBiometricAndEnter,
                     icon: const Icon(Icons.lock_open),
                     label: const Text('Использовать без биометрии'),
                     style: TextButton.styleFrom(
-                      foregroundColor: Theme.of(context).colorScheme.error,
+                      foregroundColor: _isAuthenticating ? null : Theme.of(context).colorScheme.error,
                     ),
                   ),
                   const SizedBox(height: 8),
