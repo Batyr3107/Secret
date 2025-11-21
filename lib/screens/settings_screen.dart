@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_constants.dart';
+import '../services/export_service.dart';
+import '../services/biometric_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -13,6 +15,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _overlayEnabled = true;
   bool _notificationsEnabled = true;
   bool _vibrationEnabled = true;
+  bool _biometricEnabled = false;
+  bool _biometricAvailable = false;
   ThemeMode _themeMode = ThemeMode.system;
 
   @override
@@ -23,10 +27,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
+
+    // Проверяем доступность биометрии
+    final biometricStatus = await BiometricService.instance.getBiometricStatus();
+
     setState(() {
       _overlayEnabled = prefs.getBool('overlay_enabled') ?? true;
       _notificationsEnabled = prefs.getBool('notifications_enabled') ?? true;
       _vibrationEnabled = prefs.getBool('vibration_enabled') ?? true;
+
+      _biometricAvailable = biometricStatus.isAvailable;
+      _biometricEnabled = biometricStatus.isEnabled;
 
       final themeModeIndex = prefs.getInt('theme_mode') ?? 0;
       _themeMode = ThemeMode.values[themeModeIndex];
@@ -101,19 +112,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           const Divider(),
 
+          // Безопасность
+          _buildSection('Безопасность'),
+          SwitchListTile(
+            secondary: const Icon(Icons.fingerprint),
+            title: const Text('Биометрическая защита'),
+            subtitle: Text(
+              _biometricAvailable
+                  ? 'Запрашивать биометрию при запуске приложения'
+                  : 'Недоступна на этом устройстве',
+            ),
+            value: _biometricEnabled,
+            onChanged: _biometricAvailable
+                ? (value) => _handleBiometricToggle(value)
+                : null,
+          ),
+
+          const Divider(),
+
           // Данные
           _buildSection('Данные'),
           ListTile(
             leading: const Icon(Icons.file_upload),
             title: const Text('Экспорт данных'),
             subtitle: const Text('Сохранить заметки в файл'),
-            onTap: () => _showComingSoon('Экспорт данных'),
+            onTap: () => _showExportDialog(),
           ),
           ListTile(
             leading: const Icon(Icons.file_download),
             title: const Text('Импорт данных'),
             subtitle: const Text('Загрузить заметки из файла'),
-            onTap: () => _showComingSoon('Импорт данных'),
+            onTap: () => _handleImport(),
           ),
           ListTile(
             leading: const Icon(Icons.delete_sweep),
@@ -217,6 +246,272 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showExportDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Выберите формат экспорта'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.code),
+              title: const Text('JSON'),
+              subtitle: const Text('Универсальный формат для бэкапа'),
+              onTap: () {
+                Navigator.pop(context);
+                _handleExportJson();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.table_chart),
+              title: const Text('CSV'),
+              subtitle: const Text('Для Excel и Google Sheets'),
+              onTap: () {
+                Navigator.pop(context);
+                _handleExportCsv();
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Отмена'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleExportJson() async {
+    try {
+      _showLoadingDialog('Экспорт данных...');
+
+      final file = await ExportService.instance.exportToJson();
+
+      Navigator.pop(context); // Close loading dialog
+
+      // Show share dialog
+      final shouldShare = await _showShareDialog(file.path);
+      if (shouldShare == true) {
+        await ExportService.instance.shareBackupFile(file.path);
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ Экспорт выполнен: ${file.path}'),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e, stackTrace) {
+      Navigator.pop(context); // Close loading dialog
+      debugPrint('❌ Ошибка экспорта JSON: $e');
+      debugPrint('Stack trace: $stackTrace');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Ошибка экспорта: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleExportCsv() async {
+    try {
+      _showLoadingDialog('Экспорт в CSV...');
+
+      final file = await ExportService.instance.exportToCsv();
+
+      Navigator.pop(context); // Close loading dialog
+
+      // Show share dialog
+      final shouldShare = await _showShareDialog(file.path);
+      if (shouldShare == true) {
+        await ExportService.instance.shareBackupFile(file.path);
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ Экспорт выполнен: ${file.path}'),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e, stackTrace) {
+      Navigator.pop(context); // Close loading dialog
+      debugPrint('❌ Ошибка экспорта CSV: $e');
+      debugPrint('Stack trace: $stackTrace');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Ошибка экспорта: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleImport() async {
+    try {
+      _showLoadingDialog('Импорт данных...');
+
+      final importedCount = await ExportService.instance.importFromJson();
+
+      Navigator.pop(context); // Close loading dialog
+
+      if (importedCount == 0) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('ℹ️ Новых заметок не найдено (возможно, все уже были импортированы)'),
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('✅ Импортировано заметок: $importedCount'),
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    } catch (e, stackTrace) {
+      Navigator.pop(context); // Close loading dialog
+      debugPrint('❌ Ошибка импорта: $e');
+      debugPrint('Stack trace: $stackTrace');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Ошибка импорта: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  void _showLoadingDialog(String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        content: Row(
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(width: 16),
+            Expanded(child: Text(message)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<bool?> _showShareDialog(String filePath) {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Поделиться файлом?'),
+        content: Text('Файл сохранен в:\n$filePath\n\nХотите поделиться через другие приложения?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Нет'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Поделиться'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleBiometricToggle(bool value) async {
+    if (value) {
+      // Включаем биометрию
+      final success = await BiometricService.instance.enableBiometric();
+
+      if (success) {
+        setState(() => _biometricEnabled = true);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✅ Биометрическая защита включена'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } else {
+        setState(() => _biometricEnabled = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('❌ Не удалось включить биометрическую защиту'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    } else {
+      // Отключаем биометрию (требуется подтверждение)
+      final shouldDisable = await _showBiometricDisableDialog();
+      if (shouldDisable == true) {
+        await BiometricService.instance.disableBiometric();
+        setState(() => _biometricEnabled = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('🔐 Биометрическая защита отключена'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  Future<bool?> _showBiometricDisableDialog() {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Отключить биометрию?'),
+        content: const Text(
+          'Биометрическая защита не будет запрашиваться при запуске приложения.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Отмена'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.orange,
+            ),
+            child: const Text('Отключить'),
+          ),
+        ],
       ),
     );
   }

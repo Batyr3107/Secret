@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'screens/home_screen.dart';
+import 'screens/auth_gate.dart';
 import 'services/database_service.dart';
 import 'services/phone_service.dart';
 import 'services/notification_service.dart';
@@ -110,7 +110,7 @@ class MyApp extends StatelessWidget {
         // 🔄 Автоматическое переключение по системным настройкам
         themeMode: ThemeMode.system,
 
-        home: const HomeScreen(),
+        home: const AuthGate(),
       ),
     );
   }
