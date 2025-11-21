@@ -17,6 +17,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _vibrationEnabled = true;
   bool _biometricEnabled = false;
   bool _biometricAvailable = false;
+  bool _isProcessing = false; // Защита от множественных операций
   ThemeMode _themeMode = ThemeMode.system;
 
   @override
@@ -289,15 +290,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _handleExportJson() async {
+    // Защита от множественных нажатий
+    if (_isProcessing) {
+      debugPrint('⚠️ Операция уже выполняется');
+      return;
+    }
+
+    setState(() => _isProcessing = true);
+
     try {
       _showLoadingDialog('Экспорт данных...');
 
       final file = await ExportService.instance.exportToJson();
 
+      // Проверяем что context всё ещё valid
+      if (!mounted || !context.mounted) {
+        return;
+      }
+
       Navigator.pop(context); // Close loading dialog
 
       // Show share dialog
       final shouldShare = await _showShareDialog(file.path);
+
+      if (!mounted || !context.mounted) {
+        return;
+      }
+
       if (shouldShare == true) {
         await ExportService.instance.shareBackupFile(file.path);
       }
@@ -311,7 +330,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
       }
     } catch (e, stackTrace) {
-      Navigator.pop(context); // Close loading dialog
+      // Безопасное закрытие диалога
+      if (mounted && context.mounted) {
+        Navigator.pop(context);
+      }
+
       debugPrint('❌ Ошибка экспорта JSON: $e');
       debugPrint('Stack trace: $stackTrace');
 
@@ -324,19 +347,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         );
       }
+    } finally {
+      if (mounted) {
+        setState(() => _isProcessing = false);
+      }
     }
   }
 
   Future<void> _handleExportCsv() async {
+    // Защита от множественных нажатий
+    if (_isProcessing) {
+      debugPrint('⚠️ Операция уже выполняется');
+      return;
+    }
+
+    setState(() => _isProcessing = true);
+
     try {
       _showLoadingDialog('Экспорт в CSV...');
 
       final file = await ExportService.instance.exportToCsv();
 
+      // Проверяем что context всё ещё valid
+      if (!mounted || !context.mounted) {
+        return;
+      }
+
       Navigator.pop(context); // Close loading dialog
 
       // Show share dialog
       final shouldShare = await _showShareDialog(file.path);
+
+      if (!mounted || !context.mounted) {
+        return;
+      }
+
       if (shouldShare == true) {
         await ExportService.instance.shareBackupFile(file.path);
       }
@@ -350,7 +395,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
       }
     } catch (e, stackTrace) {
-      Navigator.pop(context); // Close loading dialog
+      // Безопасное закрытие диалога
+      if (mounted && context.mounted) {
+        Navigator.pop(context);
+      }
+
       debugPrint('❌ Ошибка экспорта CSV: $e');
       debugPrint('Stack trace: $stackTrace');
 
@@ -363,14 +412,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         );
       }
+    } finally {
+      if (mounted) {
+        setState(() => _isProcessing = false);
+      }
     }
   }
 
   Future<void> _handleImport() async {
+    // Защита от множественных нажатий
+    if (_isProcessing) {
+      debugPrint('⚠️ Операция уже выполняется');
+      return;
+    }
+
+    setState(() => _isProcessing = true);
+
     try {
       _showLoadingDialog('Импорт данных...');
 
       final importedCount = await ExportService.instance.importFromJson();
+
+      // Проверяем что context всё ещё valid
+      if (!mounted || !context.mounted) {
+        return;
+      }
 
       Navigator.pop(context); // Close loading dialog
 
@@ -394,7 +460,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
         }
       }
     } catch (e, stackTrace) {
-      Navigator.pop(context); // Close loading dialog
+      // Безопасное закрытие диалога
+      if (mounted && context.mounted) {
+        Navigator.pop(context);
+      }
+
       debugPrint('❌ Ошибка импорта: $e');
       debugPrint('Stack trace: $stackTrace');
 
@@ -406,6 +476,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             duration: const Duration(seconds: 3),
           ),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isProcessing = false);
       }
     }
   }
