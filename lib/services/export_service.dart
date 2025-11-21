@@ -14,10 +14,17 @@ class ExportService {
 
   /// Экспорт всех заметок в JSON формат
   /// Возвращает файл с резервной копией
+  ///
+  /// Throws [Exception] если нет заметок для экспорта
   Future<File> exportToJson() async {
     try {
       // Получаем все заметки из БД
       final notes = await DatabaseService.instance.getAllNotes();
+
+      // Проверяем что есть данные для экспорта
+      if (notes.isEmpty) {
+        throw Exception('Нет заметок для экспорта. Добавьте хотя бы одну заметку.');
+      }
 
       // Создаем структуру данных для экспорта
       final exportData = {
@@ -53,9 +60,16 @@ class ExportService {
 
   /// Экспорт заметок в CSV формат
   /// Полезно для открытия в Excel/Google Sheets
+  ///
+  /// Throws [Exception] если нет заметок для экспорта
   Future<File> exportToCsv() async {
     try {
       final notes = await DatabaseService.instance.getAllNotes();
+
+      // Проверяем что есть данные для экспорта
+      if (notes.isEmpty) {
+        throw Exception('Нет заметок для экспорта. Добавьте хотя бы одну заметку.');
+      }
 
       // Создаем CSV с заголовками
       final csv = StringBuffer();
@@ -168,15 +182,18 @@ class ExportService {
 
   /// Поделиться файлом резервной копии
   /// Отправляет файл через любое доступное приложение
-  Future<void> shareBackupFile(File file) async {
+  ///
+  /// Параметры:
+  /// - [filePath] - путь к файлу для sharing
+  Future<void> shareBackupFile(String filePath) async {
     try {
-      final xFile = XFile(file.path);
+      final xFile = XFile(filePath);
       await Share.shareXFiles(
         [xFile],
         subject: 'Context Keeper - Резервная копия',
         text: 'Резервная копия моих заметок из приложения Context Keeper',
       );
-      debugPrint('✅ Файл отправлен на sharing');
+      debugPrint('✅ Файл отправлен на sharing: $filePath');
     } catch (e) {
       debugPrint('❌ Ошибка sharing: $e');
       rethrow;
@@ -209,17 +226,25 @@ class ExportService {
     }
   }
 
-  /// Экранирование спецсимволов для CSV
+  /// Экранирование спецсимволов для CSV согласно RFC 4180
+  ///
+  /// Правила:
+  /// - Если строка содержит запятую, кавычки, перенос строки или возврат каретки - оборачиваем в кавычки
+  /// - Кавычки внутри строки удваиваем: " -> ""
   String _escapeCsv(String value) {
-    // Экранируем кавычки удвоением
-    final escaped = value.replaceAll('"', '""');
+    // Проверяем нужно ли экранирование (ДО замены кавычек)
+    final needsQuotes = value.contains(',') ||
+        value.contains('"') ||
+        value.contains('\n') ||
+        value.contains('\r');
 
-    // Если содержит запятые, кавычки или переносы строк - оборачиваем в кавычки
-    if (escaped.contains(',') || escaped.contains('"') || escaped.contains('\n')) {
-      return '"$escaped"';
+    if (needsQuotes) {
+      // Экранируем кавычки удвоением и оборачиваем всю строку в кавычки
+      return '"${value.replaceAll('"', '""')}"';
     }
 
-    return escaped;
+    // Если спецсимволов нет - возвращаем как есть
+    return value;
   }
 
   /// Удалить старые резервные копии (оставить только N последних)
