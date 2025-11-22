@@ -172,7 +172,7 @@ class ExportService {
             continue;
           }
 
-          await DatabaseService.instance.insertNote(note);
+          await DatabaseService.instance.upsertNote(note);
           successCount++;
 
           // Добавляем в set чтобы избежать дубликатов внутри импорта
