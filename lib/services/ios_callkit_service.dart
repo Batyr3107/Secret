@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import '../models/contact_note.dart';
 import 'database_service.dart';
 import 'notification_service.dart';
 

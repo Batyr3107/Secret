@@ -27,13 +27,35 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _checkPermissions() async {
-    final hasPermissions = await PhoneService.instance.hasAllPermissions();
-    setState(() {
-      _hasPermissions = hasPermissions;
-    });
+    try {
+      debugPrint('🔒 Проверка разрешений...');
+      final hasPermissions = await PhoneService.instance.hasAllPermissions()
+          .timeout(
+            const Duration(seconds: 3),
+            onTimeout: () {
+              debugPrint('⚠️ Таймаут проверки разрешений');
+              return false;
+            },
+          );
 
-    if (!hasPermissions) {
-      _showPermissionsDialog();
+      debugPrint('🔒 Результат проверки разрешений: $hasPermissions');
+
+      if (mounted) {
+        setState(() {
+          _hasPermissions = hasPermissions;
+        });
+
+        if (!hasPermissions) {
+          _showPermissionsDialog();
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ Ошибка проверки разрешений: $e');
+      if (mounted) {
+        setState(() {
+          _hasPermissions = false;
+        });
+      }
     }
   }
 

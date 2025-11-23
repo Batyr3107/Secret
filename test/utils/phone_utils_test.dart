@@ -263,7 +263,7 @@ void main() {
     test('возвращает весь номер если запрашивается больше цифр', () {
       expect(
         PhoneUtils.getLastDigits('+79991234567', 20),
-        '+79991234567',
+        '79991234567',
       );
     });
 
@@ -284,7 +284,7 @@ void main() {
     test('обрабатывает короткий номер', () {
       expect(
         PhoneUtils.getLastDigits('123', 5),
-        '+7123',
+        '123',
       );
     });
 
@@ -312,7 +312,7 @@ void main() {
 
   group('PhoneUtils - интеграционные тесты', () {
     test('нормализация -> форматирование дает корректный результат', () {
-      final input = '8 (999) 123-45-67';
+      const input = '8 (999) 123-45-67';
       final normalized = PhoneUtils.normalize(input);
       final formatted = PhoneUtils.format(normalized);
 
@@ -343,15 +343,15 @@ void main() {
     });
 
     test('извлечение последних цифр работает после нормализации', () {
-      final input = '+7 (999) 123-45-67';
+      const input = '+7 (999) 123-45-67';
       final last4 = PhoneUtils.getLastDigits(input, 4);
 
       expect(last4, '4567');
     });
 
     test('реальный пример: Айдос звонит', () {
-      final savedNumber = '+79991234567'; // Сохраненный в БД
-      final incomingNumber = '8 (999) 123-45-67'; // Входящий звонок
+      const savedNumber = '+79991234567'; // Сохраненный в БД
+      const incomingNumber = '8 (999) 123-45-67'; // Входящий звонок
 
       expect(
         PhoneUtils.areEqual(savedNumber, incomingNumber),
@@ -360,8 +360,8 @@ void main() {
     });
 
     test('реальный пример: международный звонок', () {
-      final savedNumber = '+15551234567'; // Сохраненный в БД
-      final incomingNumber = '+1 (555) 123-4567'; // Входящий звонок
+      const savedNumber = '+15551234567'; // Сохраненный в БД
+      const incomingNumber = '+1 (555) 123-4567'; // Входящий звонок
 
       expect(
         PhoneUtils.areEqual(savedNumber, incomingNumber),

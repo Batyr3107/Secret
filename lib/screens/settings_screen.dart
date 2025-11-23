@@ -156,10 +156,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           // О приложении
           _buildSection('О приложении'),
-          ListTile(
-            leading: const Icon(Icons.info),
-            title: const Text('Версия'),
-            subtitle: Text('${AppConstants.appVersion}'),
+          const ListTile(
+            leading: Icon(Icons.info),
+            title: Text('Версия'),
+            subtitle: Text(AppConstants.appVersion),
           ),
           ListTile(
             leading: const Icon(Icons.description),

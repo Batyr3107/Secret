@@ -25,8 +25,19 @@ class _AuthGateState extends State<AuthGate> {
 
   Future<void> _checkBiometric() async {
     try {
-      // Проверяем, включена ли биометрия в настройках
-      final isEnabled = await BiometricService.instance.isBiometricEnabled();
+      debugPrint('🔐 Начинаем проверку биометрии...');
+
+      // Добавляем таймаут на случай зависания
+      final isEnabled = await BiometricService.instance.isBiometricEnabled()
+          .timeout(
+            const Duration(seconds: 3),
+            onTimeout: () {
+              debugPrint('⚠️ Таймаут при проверке биометрии');
+              return false;
+            },
+          );
+
+      debugPrint('🔐 Результат проверки биометрии: $isEnabled');
 
       if (!isEnabled) {
         // Биометрия не включена - пускаем сразу
@@ -41,14 +52,16 @@ class _AuthGateState extends State<AuthGate> {
       }
 
       // Биометрия включена - требуем аутентификацию
+      debugPrint('🔒 Биометрия включена, требуем аутентификацию');
       if (mounted) {
         setState(() {
           _authRequired = true;
           _isLoading = false;
         });
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('⚠️ Ошибка при проверке биометрии: $e');
+      debugPrint('Stack trace: $stackTrace');
       // В случае ошибки пускаем пользователя (graceful degradation)
       if (mounted) {
         setState(() {
@@ -73,8 +86,6 @@ class _AuthGateState extends State<AuthGate> {
     try {
       final authenticated = await BiometricService.instance.authenticate(
         localizedReason: 'Подтвердите вход в приложение',
-        useErrorDialogs: true,
-        stickyAuth: true,
       );
 
       if (authenticated) {

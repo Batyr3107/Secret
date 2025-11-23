@@ -62,8 +62,9 @@ class PhoneUtils {
 
   /// Извлечение последних N цифр
   static String getLastDigits(String phoneNumber, int count) {
-    final normalized = normalize(phoneNumber);
-    if (normalized.length <= count) return normalized;
-    return normalized.substring(normalized.length - count);
+    // Убираем все кроме цифр
+    final digitsOnly = phoneNumber.replaceAll(RegExp(r'\D'), '');
+    if (digitsOnly.length <= count) return digitsOnly;
+    return digitsOnly.substring(digitsOnly.length - count);
   }
 }

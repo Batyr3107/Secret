@@ -203,7 +203,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                             ),
                     ),
                   );
-                }).toList(),
+                }),
                 const SizedBox(height: 24),
                 if (_permissions.values.every((status) => status.isGranted))
                   Card(

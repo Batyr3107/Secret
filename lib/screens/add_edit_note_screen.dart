@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:contacts_service/contacts_service.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
 import '../models/contact_note.dart';
 import '../providers/contact_notes_provider.dart';
 
@@ -31,10 +30,13 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
   }
 
   Future<void> _pickContact() async {
-    // Request contacts permission
-    final permission = await Permission.contacts.request();
+    // Request contacts permission using flutter_contacts
+    debugPrint('📇 Запрос разрешения на контакты...');
+    final hasPermission = await FlutterContacts.requestPermission();
+    debugPrint('📇 Результат запроса разрешения: $hasPermission');
 
-    if (!permission.isGranted) {
+    if (!hasPermission) {
+      debugPrint('❌ Разрешение на контакты не получено');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -48,7 +50,11 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final contacts = await ContactsService.getContacts();
+      debugPrint('📇 Загрузка контактов...');
+      final contacts = await FlutterContacts.getContacts(
+        withProperties: true,
+      );
+      debugPrint('📇 Загружено контактов: ${contacts.length}');
       if (!mounted) return;
 
       final contact = await showModalBottomSheet<Contact>(
@@ -69,17 +75,21 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
                 child: ListView.builder(
                   itemCount: contacts.length,
                   itemBuilder: (context, index) {
-                    final contact = contacts.elementAt(index);
+                    final contact = contacts[index];
                     return ListTile(
                       leading: CircleAvatar(
                         child: Text(
-                          (contact.displayName ?? '?')[0].toUpperCase(),
+                          (contact.displayName.isNotEmpty
+                              ? contact.displayName
+                              : '?')[0].toUpperCase(),
                         ),
                       ),
-                      title: Text(contact.displayName ?? 'Без имени'),
+                      title: Text(contact.displayName.isNotEmpty
+                          ? contact.displayName
+                          : 'Без имени'),
                       subtitle: Text(
-                        contact.phones?.isNotEmpty == true
-                            ? contact.phones!.first.value ?? ''
+                        contact.phones.isNotEmpty
+                            ? contact.phones.first.number
                             : 'Нет телефона',
                       ),
                       onTap: () => Navigator.pop(context, contact),
@@ -96,17 +106,17 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
         setState(() => _selectedContact = contact);
 
         // If contact has multiple phone numbers, let user choose
-        if (contact.phones != null && contact.phones!.length > 1) {
-          final phone = await showDialog<Item>(
+        if (contact.phones.length > 1 && mounted) {
+          final phone = await showDialog<Phone>(
             context: context,
             builder: (context) => AlertDialog(
               title: const Text('Выберите номер'),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
-                children: contact.phones!
+                children: contact.phones
                     .map((phone) => ListTile(
-                          title: Text(phone.value ?? ''),
-                          subtitle: Text(phone.label ?? ''),
+                          title: Text(phone.number),
+                          subtitle: Text(phone.label.name),
                           onTap: () => Navigator.pop(context, phone),
                         ))
                     .toList(),
@@ -115,10 +125,10 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
           );
 
           if (phone != null) {
-            setState(() => _selectedPhoneNumber = phone.value);
+            setState(() => _selectedPhoneNumber = phone.number);
           }
-        } else if (contact.phones?.isNotEmpty == true) {
-          setState(() => _selectedPhoneNumber = contact.phones!.first.value);
+        } else if (contact.phones.isNotEmpty) {
+          setState(() => _selectedPhoneNumber = contact.phones.first.number);
         }
       }
     } catch (e) {
@@ -155,7 +165,7 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
       final note = ContactNote(
         id: widget.note?.id,
         contactId: widget.note?.contactId ??
-            _selectedContact?.identifier ?? '',
+            _selectedContact?.id ?? '',
         contactName: widget.note?.contactName ??
             _selectedContact?.displayName ?? 'Без имени',
         phoneNumber: widget.note?.phoneNumber ??
@@ -210,8 +220,9 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
                         leading: CircleAvatar(
                           child: Text(
                             _selectedContact != null
-                                ? (_selectedContact!.displayName ?? '?')[0]
-                                    .toUpperCase()
+                                ? (_selectedContact!.displayName.isNotEmpty
+                                    ? _selectedContact!.displayName[0]
+                                    : '?').toUpperCase()
                                 : '?',
                           ),
                         ),
@@ -259,7 +270,6 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
                       hintText:
                           'Например: Дочери Рита и Гита, 3 и 1 год...',
                       border: OutlineInputBorder(),
-                      alignedLabelStyle: AlignedLabelStyle(),
                     ),
                     maxLines: 10,
                     validator: (value) {

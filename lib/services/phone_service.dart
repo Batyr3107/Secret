@@ -21,16 +21,22 @@ class PhoneService {
   }
 
   Future<void> _initializeAndroid() async {
-    // Request permissions
-    final phonePermission = await Permission.phone.request();
+    try {
+      // Check permissions without requesting (non-blocking)
+      final phonePermission = await Permission.phone.status;
 
-    if (phonePermission.isGranted) {
-      // Start listening to phone state changes
-      PhoneState.stream.listen((event) {
-        _handlePhoneStateChange(event);
-      });
-    } else {
-      debugPrint('Phone permission not granted');
+      if (phonePermission.isGranted) {
+        debugPrint('✅ Разрешение на телефон уже предоставлено');
+        // Start listening to phone state changes
+        PhoneState.stream.listen((event) {
+          _handlePhoneStateChange(event);
+        });
+      } else {
+        debugPrint('⚠️ Разрешение на телефон не предоставлено');
+        debugPrint('ℹ️ Пользователь должен предоставить разрешения через экран настроек');
+      }
+    } catch (e) {
+      debugPrint('❌ Ошибка инициализации Android phone service: $e');
     }
   }
 
@@ -83,20 +89,25 @@ class PhoneService {
 
   // Check if all permissions are granted
   Future<bool> hasAllPermissions() async {
-    if (Platform.isAndroid) {
-      final phonePermission = await Permission.phone.isGranted;
-      final overlayPermission = await Permission.systemAlertWindow.isGranted;
-      final contactsPermission = await Permission.contacts.isGranted;
+    try {
+      if (Platform.isAndroid) {
+        final phonePermission = await Permission.phone.isGranted;
+        final overlayPermission = await Permission.systemAlertWindow.isGranted;
+        final contactsPermission = await Permission.contacts.isGranted;
 
-      return phonePermission && overlayPermission && contactsPermission;
-    } else if (Platform.isIOS) {
-      final contactsPermission = await Permission.contacts.isGranted;
-      final notificationPermission = await Permission.notification.isGranted;
+        return phonePermission && overlayPermission && contactsPermission;
+      } else if (Platform.isIOS) {
+        final contactsPermission = await Permission.contacts.isGranted;
+        final notificationPermission = await Permission.notification.isGranted;
 
-      return contactsPermission && notificationPermission;
+        return contactsPermission && notificationPermission;
+      }
+
+      return false;
+    } catch (e) {
+      debugPrint('❌ Ошибка проверки разрешений: $e');
+      return false;
     }
-
-    return false;
   }
 
   // Request all necessary permissions

@@ -36,8 +36,8 @@ void main() {
         contactName: 'Тест',
         phoneNumber: '+79991234567',
         notes: 'Тестовая заметка',
-        createdAt: DateTime(2025, 1, 1),
-        updatedAt: DateTime(2025, 1, 1),
+        createdAt: DateTime(2025),
+        updatedAt: DateTime(2025),
       );
 
       // Добавляем вручную в список для теста
@@ -56,8 +56,8 @@ void main() {
         contactName: 'Тест',
         phoneNumber: '+79991234567',
         notes: 'Тестовая заметка',
-        createdAt: DateTime(2025, 1, 1),
-        updatedAt: DateTime(2025, 1, 1),
+        createdAt: DateTime(2025),
+        updatedAt: DateTime(2025),
       );
 
       provider.notes.add(testNote);
@@ -77,12 +77,12 @@ void main() {
       );
     });
 
-    test('searchNotes возвращает пустой список для пустого запроса', () {
-      final results = provider.searchNotes('');
+    test('searchNotes возвращает пустой список для пустого запроса', () async {
+      final results = await provider.searchNotes('');
       expect(results, equals(provider.notes));
     });
 
-    test('searchNotes фильтрует по имени контакта', () {
+    test('searchNotes фильтрует по имени контакта', () async {
       final note1 = ContactNote(
         id: 1,
         contactId: 'test_1',
@@ -105,12 +105,12 @@ void main() {
 
       provider.notes.addAll([note1, note2]);
 
-      final results = provider.searchNotes('Айдос');
+      final results = await provider.searchNotes('Айдос');
       expect(results.length, 1);
       expect(results.first.contactName, 'Айдос');
     });
 
-    test('searchNotes фильтрует по номеру телефона', () {
+    test('searchNotes фильтрует по номеру телефона', () async {
       final note1 = ContactNote(
         id: 1,
         contactId: 'test_1',
@@ -133,12 +133,12 @@ void main() {
 
       provider.notes.addAll([note1, note2]);
 
-      final results = provider.searchNotes('999111');
+      final results = await provider.searchNotes('999111');
       expect(results.length, 1);
       expect(results.first.contactName, 'Айдос');
     });
 
-    test('searchNotes фильтрует по содержимому заметки', () {
+    test('searchNotes фильтрует по содержимому заметки', () async {
       final note1 = ContactNote(
         id: 1,
         contactId: 'test_1',
@@ -161,12 +161,12 @@ void main() {
 
       provider.notes.addAll([note1, note2]);
 
-      final results = provider.searchNotes('Дочери');
+      final results = await provider.searchNotes('Дочери');
       expect(results.length, 1);
       expect(results.first.contactName, 'Айдос');
     });
 
-    test('searchNotes не учитывает регистр', () {
+    test('searchNotes не учитывает регистр', () async {
       final note = ContactNote(
         id: 1,
         contactId: 'test_1',
@@ -179,17 +179,17 @@ void main() {
 
       provider.notes.add(note);
 
-      final results1 = provider.searchNotes('айдос');
+      final results1 = await provider.searchNotes('айдос');
       expect(results1.length, 1);
 
-      final results2 = provider.searchNotes('АЙДОС');
+      final results2 = await provider.searchNotes('АЙДОС');
       expect(results2.length, 1);
 
-      final results3 = provider.searchNotes('дОчЕрИ');
+      final results3 = await provider.searchNotes('дОчЕрИ');
       expect(results3.length, 1);
     });
 
-    test('searchNotes возвращает несколько результатов', () {
+    test('searchNotes возвращает несколько результатов', () async {
       final note1 = ContactNote(
         id: 1,
         contactId: 'test_1',
@@ -212,11 +212,11 @@ void main() {
 
       provider.notes.addAll([note1, note2]);
 
-      final results = provider.searchNotes('Айдос');
+      final results = await provider.searchNotes('Айдос');
       expect(results.length, 2);
     });
 
-    test('searchNotes возвращает пустой список если ничего не найдено', () {
+    test('searchNotes возвращает пустой список если ничего не найдено', () async {
       final note = ContactNote(
         id: 1,
         contactId: 'test_1',
@@ -229,7 +229,7 @@ void main() {
 
       provider.notes.add(note);
 
-      final results = provider.searchNotes('Несуществующий');
+      final results = await provider.searchNotes('Несуществующий');
       expect(results, isEmpty);
     });
 
@@ -292,7 +292,7 @@ void main() {
       provider.notes.add(savedNote);
 
       // Входящий звонок с номером в другом формате
-      final incomingNumber = '8 (999) 123-45-67';
+      const incomingNumber = '8 (999) 123-45-67';
 
       // Должны найти заметку
       final note = provider.getNoteByPhoneNumber(incomingNumber);
@@ -302,7 +302,7 @@ void main() {
       expect(note?.notes, contains('Дочери'));
     });
 
-    test('сценарий: поиск контакта в списке', () {
+    test('сценарий: поиск контакта в списке', () async {
       // Несколько контактов в списке
       provider.notes.addAll([
         ContactNote(
@@ -332,7 +332,7 @@ void main() {
       ]);
 
       // Пользователь вводит поиск
-      final results = provider.searchNotes('Мар');
+      final results = await provider.searchNotes('Мар');
 
       expect(results.length, 1);
       expect(results.first.contactName, 'Марат');

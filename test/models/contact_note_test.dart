@@ -4,7 +4,7 @@ import 'package:context_keeper/models/contact_note.dart';
 void main() {
   group('ContactNote', () {
     test('создается корректно с всеми параметрами', () {
-      final now = DateTime(2025, 1, 1);
+      final now = DateTime(2025);
       final note = ContactNote(
         id: 1,
         contactId: 'contact_123',
@@ -41,7 +41,7 @@ void main() {
     });
 
     test('toMap() конвертирует правильно', () {
-      final now = DateTime(2025, 1, 1);
+      final now = DateTime(2025);
       final note = ContactNote(
         id: 1,
         contactId: 'contact_123',
@@ -81,8 +81,8 @@ void main() {
       expect(note.contactName, 'Айдос');
       expect(note.phoneNumber, '+79991234567');
       expect(note.notes, 'Дочери Рита и Гита');
-      expect(note.createdAt, DateTime(2025, 1, 1));
-      expect(note.updatedAt, DateTime(2025, 1, 1));
+      expect(note.createdAt, DateTime(2025));
+      expect(note.updatedAt, DateTime(2025));
     });
 
     test('toMap() и fromMap() являются обратными операциями', () {
@@ -92,8 +92,8 @@ void main() {
         contactName: 'Айдос',
         phoneNumber: '+79991234567',
         notes: 'Дочери Рита и Гита',
-        createdAt: DateTime(2025, 1, 1),
-        updatedAt: DateTime(2025, 1, 1),
+        createdAt: DateTime(2025),
+        updatedAt: DateTime(2025),
       );
 
       final map = originalNote.toMap();
@@ -115,8 +115,8 @@ void main() {
         contactName: 'Айдос',
         phoneNumber: '+79991234567',
         notes: 'Старая заметка',
-        createdAt: DateTime(2025, 1, 1),
-        updatedAt: DateTime(2025, 1, 1),
+        createdAt: DateTime(2025),
+        updatedAt: DateTime(2025),
       );
 
       final updated = original.copyWith(
@@ -140,8 +140,8 @@ void main() {
         contactName: 'Айдос',
         phoneNumber: '+79991234567',
         notes: 'Дочери Рита и Гита',
-        createdAt: DateTime(2025, 1, 1),
-        updatedAt: DateTime(2025, 1, 1),
+        createdAt: DateTime(2025),
+        updatedAt: DateTime(2025),
       );
 
       final copy = original.copyWith();

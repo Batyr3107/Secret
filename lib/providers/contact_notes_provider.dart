@@ -11,7 +11,13 @@ class ContactNotesProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
 
   ContactNotesProvider() {
-    loadNotes();
+    // Загружаем заметки асинхронно без блокировки конструктора
+    _loadNotesAsync();
+  }
+
+  // Вспомогательный метод для асинхронной загрузки без await в конструкторе
+  void _loadNotesAsync() {
+    Future.microtask(() => loadNotes());
   }
 
   Future<void> loadNotes() async {
@@ -19,9 +25,18 @@ class ContactNotesProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      _notes = await DatabaseService.instance.getAllNotes();
+      debugPrint('📝 Загрузка заметок из БД...');
+      _notes = await DatabaseService.instance.getAllNotes().timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          debugPrint('⚠️ Таймаут загрузки заметок');
+          return [];
+        },
+      );
+      debugPrint('✅ Загружено ${_notes.length} заметок');
     } catch (e) {
-      debugPrint('Error loading notes: $e');
+      debugPrint('❌ Error loading notes: $e');
+      _notes = []; // Возвращаем пустой список при ошибке
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -74,7 +89,6 @@ class ContactNotesProvider with ChangeNotifier {
   ContactNote? getNoteByPhoneNumber(String phoneNumber) {
     if (_notes.isEmpty) return null;
 
-    final cleanNumber = PhoneUtils.normalize(phoneNumber);
     try {
       return _notes.firstWhere(
         (note) => PhoneUtils.areEqual(note.phoneNumber, phoneNumber),

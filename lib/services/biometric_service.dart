@@ -76,11 +76,6 @@ class BiometricService {
 
       final authenticated = await _auth.authenticate(
         localizedReason: localizedReason,
-        options: AuthenticationOptions(
-          useErrorDialogs: useErrorDialogs,
-          stickyAuth: stickyAuth,
-          biometricOnly: false, // Разрешаем PIN если биометрия недоступна
-        ),
       );
 
       if (authenticated) {
@@ -110,10 +105,16 @@ class BiometricService {
 
   /// Проверяет, включена ли биометрическая защита в настройках приложения
   Future<bool> isBiometricEnabled() async {
-    final prefs = await SharedPreferences.getInstance();
-    final enabled = prefs.getBool(_biometricEnabledKey) ?? false;
-    debugPrint('🔐 Биометрическая защита в настройках: $enabled');
-    return enabled;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final enabled = prefs.getBool(_biometricEnabledKey) ?? false;
+      debugPrint('🔐 Биометрическая защита в настройках: $enabled');
+      return enabled;
+    } catch (e) {
+      debugPrint('⚠️ Ошибка при чтении настроек биометрии: $e');
+      // В случае ошибки по умолчанию биометрия выключена
+      return false;
+    }
   }
 
   /// Включает биометрическую защиту в настройках

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'screens/auth_gate.dart';
@@ -27,33 +26,60 @@ void main() async {
     debugPrint('ℹ️ This is expected if google-services.json is not configured');
   }
 
-  // Run app with error zone
-  runZonedGuarded(
-    () async {
-      // Initialize database
-      await DatabaseService.instance.database;
+  // Запускаем приложение сразу, сервисы инициализируются в фоне
+  debugPrint('🚀 Запуск приложения...');
+  runApp(const MyApp());
 
-      // Initialize phone service
-      await PhoneService.instance.initialize();
+  // Инициализируем сервисы в фоне (не блокируя UI)
+  _initializeServicesInBackground();
+}
 
-      // Initialize notification service (will skip Firebase if not configured)
-      try {
-        await NotificationService.instance.initialize();
-      } catch (e) {
-        debugPrint('⚠️ Notification service initialization failed: $e');
-        debugPrint('ℹ️ App will continue without notifications');
-      }
+/// Инициализация сервисов в фоновом режиме
+Future<void> _initializeServicesInBackground() async {
+  // Initialize database with timeout
+  try {
+    debugPrint('🗄️ Инициализация базы данных...');
+    await DatabaseService.instance.database.timeout(
+      const Duration(seconds: 5),
+      onTimeout: () {
+        debugPrint('⚠️ Таймаут инициализации БД');
+        throw TimeoutException('Database initialization timeout');
+      },
+    );
+    debugPrint('✅ База данных инициализирована');
+  } catch (e) {
+    debugPrint('❌ Ошибка инициализации БД: $e');
+  }
 
-      runApp(const MyApp());
-    },
-    (error, stackTrace) {
-      ErrorHandler.handleError(
-        error,
-        stackTrace,
-        userMessage: 'Критическая ошибка приложения',
-      );
-    },
-  );
+  // Initialize phone service with timeout
+  try {
+    debugPrint('📞 Инициализация телефонного сервиса...');
+    await PhoneService.instance.initialize().timeout(
+      const Duration(seconds: 3),
+      onTimeout: () {
+        debugPrint('⚠️ Таймаут инициализации телефонного сервиса');
+      },
+    );
+    debugPrint('✅ Телефонный сервис инициализирован');
+  } catch (e) {
+    debugPrint('❌ Phone service initialization failed: $e');
+  }
+
+  // Initialize notification service
+  try {
+    debugPrint('🔔 Инициализация сервиса уведомлений...');
+    await NotificationService.instance.initialize().timeout(
+      const Duration(seconds: 3),
+      onTimeout: () {
+        debugPrint('⚠️ Таймаут инициализации уведомлений');
+      },
+    );
+    debugPrint('✅ Сервис уведомлений инициализирован');
+  } catch (e) {
+    debugPrint('❌ Notification service initialization failed: $e');
+  }
+
+  debugPrint('✅ Все сервисы инициализированы');
 }
 
 class MyApp extends StatelessWidget {
@@ -71,7 +97,6 @@ class MyApp extends StatelessWidget {
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(
             seedColor: Colors.deepPurple,
-            brightness: Brightness.light,
           ),
           useMaterial3: true,
           cardTheme: CardTheme(
@@ -108,8 +133,6 @@ class MyApp extends StatelessWidget {
         ),
 
         // 🔄 Автоматическое переключение по системным настройкам
-        themeMode: ThemeMode.system,
-
         home: const AuthGate(),
       ),
     );

@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import '../models/contact_note.dart';
 
 class NotificationService {
   static final NotificationService instance = NotificationService._init();
@@ -14,11 +13,7 @@ class NotificationService {
   Future<void> initialize() async {
     // Initialize local notifications
     const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const iosSettings = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
-    );
+    const iosSettings = DarwinInitializationSettings();
 
     const initSettings = InitializationSettings(
       android: androidSettings,
@@ -38,11 +33,7 @@ class NotificationService {
       // Request permission
       final messaging = FirebaseMessaging.instance;
 
-      final settings = await messaging.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
+      final settings = await messaging.requestPermission();
 
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
         debugPrint('User granted permission');
@@ -91,15 +82,11 @@ class NotificationService {
       channelDescription: 'Notifications for incoming calls with contact notes',
       importance: Importance.max,
       priority: Priority.high,
-      showWhen: true,
       category: AndroidNotificationCategory.call,
       fullScreenIntent: true,
     );
 
     const iosDetails = DarwinNotificationDetails(
-      presentAlert: true,
-      presentBadge: true,
-      presentSound: true,
       interruptionLevel: InterruptionLevel.timeSensitive,
     );
 
